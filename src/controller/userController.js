@@ -25,21 +25,29 @@ exports.register = async (req, res) => {
         // Enkripsi password sebelum menyimpannya
         const hashedPassword = bcrypt.hashSync(password, 8);
 
-        // Cari data Santri berdasarkan as_id
-        const santri = await knex('Santri').where({ id: as_id }).first();
+        // Jika as_id ada, cari data Santri berdasarkan as_id
+        let user;
+        if (as_id !== null) {
+            const santri = await knex('Santri').where({ id: as_id }).first();
 
-        if (!santri) {
-            return res.status(404).json({ message: 'Santri not found' });
+            if (!santri) {
+                return res.status(404).json({ message: 'Santri not found' });
+            }
+
+            // Buat user baru dalam database
+            user = await knex('User').insert({
+                username,
+                password: hashedPassword,
+                as_id,
+            });
+        } else {
+            // Jika as_id tidak ada atau null, buat user baru tanpa as_id
+            user = await knex('User').insert({
+                username,
+                password: hashedPassword,
+            });
         }
-
-        // Buat user baru dalam database
-        const newUser = await knex('User').insert({
-            username,
-            password: hashedPassword,
-            as_id,
-        });
-
-        res.json({ message: 'User registered successfully', user: santri });
+        res.json({ message: 'User registered successfully', user: user });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Internal server error' });
@@ -69,13 +77,6 @@ exports.login = async (req, res) => {
         const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET_KEY, {
             expiresIn: '24h', // Durasi token berlaku
         });
-
-        // Ambil data Santri sesuai 'as_id'
-        const santri = await knex('Santri').where({ id: user.as_id }).first();
-
-        if (!santri) {
-            return res.status(404).json({ message: 'Santri not found' });
-        }
 
         // Simpan token di tabel User
         await knex('User').where({ id: user.id }).update({ token });
