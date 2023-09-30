@@ -104,3 +104,14 @@ exports.getAllUsers = async (req, res) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 };
+
+exports.getAllSantri = async (req, res) => {
+    try {
+        const users = await knex('Santri')
+            .select('*'); // Ganti 'user' dengan nama tabel pengguna Anda
+        res.status(200).json(users);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
